@@ -10,6 +10,8 @@ urlpatterns = [
     path('answer/<int:pk>', views.answer, name='answer'),
     path('lboard/', views.lboard, name='lboard'),
     path('rules/', views.rules, name='rules'),
+    path('finish/', views.finish, name='finish'),
+    # path('rules/', views.rules, name='rules'),
     # path(r'^notif/$', views.getNotif, name='getNotif'),
 
 ]

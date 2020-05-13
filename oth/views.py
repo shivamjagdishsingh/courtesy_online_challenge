@@ -4,6 +4,8 @@ import datetime
 from django.contrib.auth.decorators import login_required
 import random
 from django.shortcuts import redirect
+from textblob import TextBlob
+
 from django.shortcuts import HttpResponse
 
 # Create your views here.
@@ -25,39 +27,45 @@ def save_profile(backend, user, response, *args, **kwargs):
             player.save()
 
 
+def sentiment(text):
+    obj = TextBlob(text)
+    polarity = obj.sentiment.polarity
+    label = ''
+    if -1 <= polarity < -0.5:
+        label = 'very bad'
+    elif -0.5 <= polarity < -0.1:
+        label = 'bad'
+    elif -0.1 <= polarity < 0.2:
+        label = 'ok'
+    elif 0.2 <= polarity < 0.6:
+        label = 'good'
+    elif 0.6 <= polarity <= 1:
+        label = 'positive'
+
+    return label
+
+
 @login_required
 def index(request):
     user = request.user
     if user.is_authenticated:
         player = models.Player.objects.get(user_id=request.user.pk)
-        try:
 
-            if player.level < 5:
-                level = models.Question.objects.filter(module__module__icontains="demo")
-            elif player.level < 10:
-                level = models.Question.objects.filter(module__module__icontains="2")
-            elif player.level < 15:
-                level = models.Question.objects.filter(module__module__icontains="3")
-            elif player.level < 20:
-                level = models.Question.objects.filter(module__module__icontains="4")
-            elif player.level < 25:
-                level = models.Question.objects.filter(module__module__icontains="5")
-            elif player.level < 30:
-                level = models.Question.objects.filter(module__module__icontains="6")
-            elif player.level < 35:
-                level = models.Question.objects.filter(module__module__icontains="7")
+        if player.level >= 35:
+            return redirect('oth:finish')
 
-            question = level[random.randrange(1, level.count())]
-
-            while models.Answer.objects.filter(question__question=question).exists():
-                question = level[random.randrange(1, level.count())]
-            return render(request, 'oth/level.html', {'player': player, 'level': question})
-        except:
-            global last
-            if player.level > last:
-                return render(request, 'oth/win.html', {'player': player})
-            return render(request, 'oth/finish.html', {'player': player})
-    return render(request, 'oth/oth.html')
+        if player.random_number == 1:
+            random_number = models.Question.objects.first().id
+            question = models.Question.objects.get(pk=random_number)
+        else:
+            question = models.Question.objects.get(pk=player.random_number)
+        return render(request, 'oth/level.html', {'player': player, 'level': question})
+    #     except:
+    #         global last
+    #         if player.level > last:
+    #             return render(request, 'oth/win.html', {'player': player})
+    #         return render(request, 'oth/stay_tuned.html', {'player': player})
+    # return render(request, 'oth/oth.html')
 
 
 @login_required
@@ -67,56 +75,78 @@ def answer(request, **kwargs):
         ans = request.POST.get('answer', '')
     player = models.Player.objects.get(user_id=request.user.pk)
 
-    try:
-        level = models.Answer.objects.filter(user=player).count()
-    except:
-        return render(request, 'oth/finish.html', {'player': player})
+    # try:
+    #     level = models.Answer.objects.filter(user=player).count()
+    # except:
+    #     return render(request, 'oth/stay_tuned.html', {'player': player})
 
     question = models.Question.objects.get(pk=kwargs['pk'])
+    s = sentiment(ans)
     answer, created = models.Answer.objects.update_or_create(user=player, question=question,
-                                                             defaults={'answer': ans})
+                                                             defaults={'answer': ans, 'sentiment': s})
     # answer.image =
     # answer.sentiment =
     # answer.facial_expression =
+    if created:
+        player.level = player.level + 1
+        player.score = player.score + 10
+        player.timestamp = datetime.datetime.now()
+        question.numuser = question.numuser + 1
+        question.save()
 
-    player.level = player.level + 1
-    player.score = player.score + 10
-    player.timestamp = datetime.datetime.now()
-    question.numuser = question.numuser + 1
-    # level.accuracy = round(level.numuser / (float(level.numuser + level.wrong)), 2)
-    question.save()
-    # print level.numuser
-    # print player.max_level
-    global m_level
-    global f_user
-    # print f_user
-    # print m_level
-    if m_level < player.level:
-        m_level = player.level
-        f_user = player.name
-    player.save()
-    return redirect('/')
+    try:
+        if player.level < 5:
+            random_question = models.Question.objects.filter(module__module__icontains="demo")
+        elif player.level < 10:
+            random_question = models.Question.objects.filter(module__module__icontains="2")
+        elif player.level < 15:
+            random_question = models.Question.objects.filter(module__module__icontains="3")
+        elif player.level < 20:
+            random_question = models.Question.objects.filter(module__module__icontains="4")
+        elif player.level < 25:
+            random_question = models.Question.objects.filter(module__module__icontains="5")
+        elif player.level < 30:
+            random_question = models.Question.objects.filter(module__module__icontains="6")
+        elif player.level < 35:
+            random_question = models.Question.objects.filter(module__module__icontains="7")
+        else:
+            return redirect('oth:finish')
+
+        random_number = random_question[random.randrange(0, random_question.count())].id
+        while models.Answer.objects.filter(user=player, question_id=random_number).exists():
+            random_number = random_question[random.randrange(0, random_question.count())].id
+            print(random_number)
+
+        player.random_number = random_number
+        # if models.Answer.objects.filter
+        # print level.numuser
+        # print player.max_level
+        global m_level
+        global f_user
+        # print f_user
+        # print m_level
+        if m_level < player.level:
+            m_level = player.level
+            f_user = player.name
+        player.save()
+        return redirect('oth:index')
+
+    except ValueError:
+        return redirect('oth:finish')
 
     # index(request)
     # try:
     #     level = models..objects.get(leve=player.level)
-    #     # return render(request, 'level_transition.html')
+    #     # return render(request, 'finish.html')
     # except:
-    #     return render(request, 'oth/level_transition.html')
+    #     return render(request, 'oth/finish.html')
     # global last
     # if player.level > last:
     #     return render(request, 'oth/win.html', {'player': player})
-    # return render(request, 'oth/finish.html', {'player': player})
+    # return render(request, 'oth/stay_tuned.html', {'player': player})
     # elif ans == "":
     #     pass
     #
-    # else:
-    #     level.wrong = level.wrong + 1
-    #     level.save()
-    #
-    #     # messages.error(request, "Wrong Answer!, Try Again")
-    #
-    # return render(request, 'oth/level.html', {'player': player, 'level': level})
 
 
 @login_required
@@ -132,4 +162,8 @@ def lboard(request):
 
 @login_required()
 def rules(request):
-    return render(request, 'oth/index_page.html')
+    return render(request, 'oth/rules.html')
+
+
+def finish(request):
+    return render(request, 'oth/finish2.html')

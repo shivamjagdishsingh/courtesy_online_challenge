@@ -15,7 +15,7 @@ class Player(models.Model):
     name = models.CharField(max_length=128)
     level = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
-    rank = models.IntegerField(default=0)
+    random_number = models.IntegerField(default=1)
     timestamp = models.DateTimeField()
 
     def __str__(self):
@@ -43,17 +43,20 @@ class Question(models.Model):
     def __str__(self):
         return '- '.join([str(self.module), self.question])
 
+    class Meta:
+        ordering = ['pk']
+
 
 class Answer(models.Model):
-    user = models.ForeignKey(Player, on_delete=models.DO_NOTHING, blank=True, null=True)
-    question = models.ForeignKey(Question, on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(Player, on_delete=models.CASCADE, blank=True, null=True)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer = models.CharField(max_length=500, blank=True, null=True)
     image = models.ImageField(upload_to='images/', blank=True, null=True)
-    sentiment = models.IntegerField(blank=True, null=True)
+    sentiment = models.CharField(max_length=50, blank=True, null=True)
     facial_expression = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return '- '.join([self.user.name, str(self.question.pk)])
+        return '- '.join([self.user.name, str(self.question.module), self.question.question])
 
 
 class Notif(models.Model):
