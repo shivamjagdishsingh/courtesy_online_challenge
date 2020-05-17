@@ -4,6 +4,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    <script>
+        var myWindow;
+
+        function openWin() {
+            myWindow = window.open('popup_video', "myWindow", "width=650,height=500", 1000);
+            myWindow.document.write("<img src=\"{% url 'oth:video_feed' %}\" role=\"button\" tabIndex=\"0\">\n");
+        }
+
+        function closeWin() {
+            myWindow.close();
+        }
+    </script>
 
     <!-- Example row of columns -->
     <div class="row">
@@ -27,15 +39,30 @@
                                 style="font-weight:bold;color:#5CB85C">{{ player.score }} points</span></div>
                         <div class="navbar-brand" style="font-family:'Capriola',sans-serif;">Your Level : <span
                                 style="font-weight:bold;color:#5CB85C">{{ player.level }}</span></div>
+                        {% if player.player_emotion is not '' %}
+                            <div class="navbar-brand" style="font-family:'Capriola',sans-serif;">You seem to be <span
+                                    style="font-weight:bold;color:#5CB85C">{{ player.player_emotion }}</span> Today.
+                            </div>
+                        {% endif %}
 
                     </div>
                     <div class="collapse navbar-collapse" id="myNavbar">
                         <ul class="nav navbar-nav navbar-right">
 
+
+                            {#                            <button onclick="closeWin()">Close "myWindow"</button>#}
+
+
                             <li><a style="font-family:'Capriola',sans-serif;" href="{% url 'oth:rules' %}">Rules</a>
                             </li>
                             <li><a style="font-family:'Capriola',sans-serif;"
                                    href="{% url 'oth:lboard' %}">Leaderboard</a>
+                            </li>
+                            <li>
+                                <button class="dropdown-toggle btn btn-default navbar-btn"
+                                        style="margin-left:10px;background-color:#f5f5f5" onclick="openWin()"><b>How do you
+                                    Feel?</b>
+                                </button>
                             </li>
                             <li class="dropdown">
                                 <button class="dropdown-toggle btn btn-default navbar-btn" data-toggle="dropdown"
@@ -106,6 +133,7 @@
                 <p style="text-align:center;font-size:35px;color:green">{{ level.module }}</p>
             </div>
         </div>
+
     </div>
 {% endblock %}
 

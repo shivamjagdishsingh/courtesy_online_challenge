@@ -17,6 +17,7 @@ class Player(models.Model):
     score = models.IntegerField(default=0)
     random_number = models.IntegerField(default=1)
     timestamp = models.DateTimeField()
+    player_emotion = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -44,7 +45,7 @@ class Question(models.Model):
         return '- '.join([str(self.module), self.question])
 
     class Meta:
-        ordering = ['pk']
+        ordering = ['-pk']
 
 
 class Answer(models.Model):
@@ -72,3 +73,9 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+class Emotion(models.Model):
+    user = models.ForeignKey(Player, on_delete=models.CASCADE, blank=True, null=True)
+    emotion = models.CharField(max_length=500, blank=True, null=True)
+    timestamp = models.DateTimeField()

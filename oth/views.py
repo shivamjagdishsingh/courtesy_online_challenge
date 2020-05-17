@@ -5,7 +5,8 @@ from django.contrib.auth.decorators import login_required
 import random
 from django.shortcuts import redirect
 from textblob import TextBlob
-
+from django.http.response import StreamingHttpResponse
+from oth.camera import VideoCamera
 from django.shortcuts import HttpResponse
 
 # Create your views here.
@@ -128,6 +129,13 @@ def answer(request, **kwargs):
         if m_level < player.level:
             m_level = player.level
             f_user = player.name
+        oneday = datetime.datetime.now() - datetime.timedelta(days=1)
+        emotion_shivam = models.Emotion.objects.filter(user=player, timestamp__gt=oneday)
+        emotion_list = [emotion.emotion for emotion in emotion_shivam]
+        bb = dict(zip(emotion_list, [emotion_list.count(i) for i in emotion_list]))
+        final_emotion = max(bb, key=bb.get)
+        player.player_emotion = final_emotion
+
         player.save()
         return redirect('oth:index')
 
@@ -167,3 +175,20 @@ def rules(request):
 
 def finish(request):
     return render(request, 'oth/finish2.html')
+
+
+def gen(camera, player):
+    while True:
+        frame, emotion = camera.get_frame()
+        print(emotion, player)
+        player_object = models.Player.objects.get(user_id=player)
+        if emotion is not '' and emotion is not "neutral":
+            emotion_save = models.Emotion.objects.create(user=player_object, emotion=emotion,
+                                                         timestamp=datetime.datetime.now())
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+
+def video_feed(request):
+    return StreamingHttpResponse(gen(VideoCamera(), request.user.pk),
+                                 content_type='multipart/x-mixed-replace; boundary=frame')
