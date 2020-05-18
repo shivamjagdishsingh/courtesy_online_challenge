@@ -53,10 +53,10 @@ def index(request):
         player = models.Player.objects.get(user_id=request.user.pk)
 
         if player.level >= 35:
-            return redirect('oth:finish')
+            return redirect('oth:stay_tuned')
 
         if player.random_number == 1:
-            random_number = models.Question.objects.first().id
+            random_number = models.Question.objects.last().id
             question = models.Question.objects.get(pk=random_number)
         else:
             question = models.Question.objects.get(pk=player.random_number)
@@ -76,11 +76,24 @@ def answer(request, **kwargs):
         ans = request.POST.get('answer', '')
     player = models.Player.objects.get(user_id=request.user.pk)
 
-    # try:
-    #     level = models.Answer.objects.filter(user=player).count()
-    # except:
-    #     return render(request, 'oth/stay_tuned.html', {'player': player})
-
+    oneday = datetime.datetime.now() - datetime.timedelta(days=1)
+    emotion_shivam = models.Emotion.objects.filter(user=player, timestamp__gt=oneday)
+    emotion_list = [emotion.emotion for emotion in emotion_shivam]
+    bb = dict(zip(emotion_list, [emotion_list.count(i) for i in emotion_list]))
+    final_emotion = max(bb, key=bb.get)
+    player.player_emotion = final_emotion
+    if not 'happy'.__eq__(final_emotion):
+        return redirect('oth:not_happy')
+    # if (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).days < 1:
+    #     seconds = 86400 - (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).total_seconds()
+    #     seconds = seconds % (24 * 3600)
+    #     hour = seconds // 3600
+    #     seconds %= 3600
+    #     minutes = seconds // 60
+    #     seconds %= 60
+    #
+    #     return render(request, 'oth/time_limit.html',
+    #                   {'hours': int(hour), 'minutes': int(minutes), 'seconds': int(seconds)})
     question = models.Question.objects.get(pk=kwargs['pk'])
     s = sentiment(ans)
     answer, created = models.Answer.objects.update_or_create(user=player, question=question,
@@ -111,6 +124,9 @@ def answer(request, **kwargs):
         elif player.level < 35:
             random_question = models.Question.objects.filter(module__module__icontains="7")
         else:
+            player.random_number = 100
+            player.save()
+
             return redirect('oth:finish')
 
         random_number = random_question[random.randrange(0, random_question.count())].id
@@ -129,12 +145,6 @@ def answer(request, **kwargs):
         if m_level < player.level:
             m_level = player.level
             f_user = player.name
-        oneday = datetime.datetime.now() - datetime.timedelta(days=1)
-        emotion_shivam = models.Emotion.objects.filter(user=player, timestamp__gt=oneday)
-        emotion_list = [emotion.emotion for emotion in emotion_shivam]
-        bb = dict(zip(emotion_list, [emotion_list.count(i) for i in emotion_list]))
-        final_emotion = max(bb, key=bb.get)
-        player.player_emotion = final_emotion
 
         player.save()
         return redirect('oth:index')
@@ -175,6 +185,16 @@ def rules(request):
 
 def finish(request):
     return render(request, 'oth/finish2.html')
+
+
+def stay_tuned(request):
+    return render(request, 'oth/stay_tuned.html')
+
+
+def not_happy(request, **kwargs):
+    player = models.Player.objects.get(user_id=request.user.pk)
+
+    return render(request, 'oth/not_happy.html', {'player_emotion': player.player_emotion})
 
 
 def gen(camera, player):

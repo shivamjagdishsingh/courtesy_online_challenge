@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    {% csrf_token %}
-    <a href="{% url 'social:begin' 'google-oauth2' %}">
-        <button class="btn-lg btn-google"><i class="fa fa-google"></i> | Login with Google</button>
-    </a>
 
-    <a href="{% url 'logout' %}" type="button" class="btn btn-primary">
-        <span class="glyphicon glyphicon-log-out"></span> Logout
-    </a>
+    <div class="jumbotron container-fluid border-shadow"
+         style="margin-top:10px;background-color:rgba(255, 255, 255, 0.5);border:5px">
+        <h1 style="font-family: 'Creepster', cursive;font-size:450%;color:#648A93">Courtesy Online Challenge</h1>
+        <p style="font-family: 'Capriola', sans-serif;font-size:20px;" class="lead">Login through your Google
+            account to start playing!</p>
+        {% csrf_token %}
+        <a href="{% url 'social:begin' 'google-oauth2' %}">
+            <button class="btn-lg btn-google"><i class="fa fa-google"></i> | Login with Google</button>
+        </a>
+    </div>
+    {#    <a href="{% url 'logout' %}" type="button" class="btn btn-primary">#}
+    {#        <span class="glyphicon glyphicon-log-out"></span> Logout#}
+    {#    </a>#}
 {% endblock %}

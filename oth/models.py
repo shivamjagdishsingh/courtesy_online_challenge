@@ -17,7 +17,7 @@ class Player(models.Model):
     score = models.IntegerField(default=0)
     random_number = models.IntegerField(default=1)
     timestamp = models.DateTimeField()
-    player_emotion = models.CharField(max_length=50, blank=True, null=True)
+    player_emotion = models.CharField(max_length=50,default='neutral', blank=True, null=True)
 
     def __str__(self):
         return self.name
