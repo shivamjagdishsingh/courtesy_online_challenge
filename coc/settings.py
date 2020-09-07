@@ -85,8 +85,14 @@ WSGI_APPLICATION = 'coc.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'coc',
+        # 'ENGINE': 'django.db.backends.postgresql',
+        # 'NAME': 'coc',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'coc1',
+        'USER': 'coc',
+        'PASSWORD': 'coc',
+        'HOST': 'localhost',
+        'PORT': '',
     }
 }
 

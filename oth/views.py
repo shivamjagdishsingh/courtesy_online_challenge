@@ -16,6 +16,18 @@ f_user = ""
 last = 100
 
 
+def get_emotion(player):
+    oneday = datetime.datetime.now() - datetime.timedelta(days=1)
+    emotion_shivam = models.Emotion.objects.filter(user=player, timestamp__gt=oneday)
+    if emotion_shivam:
+        emotion_list = [emotion.emotion for emotion in emotion_shivam]
+        bb = dict(zip(emotion_list, [emotion_list.count(i) for i in emotion_list]))
+        final_emotion = max(bb, key=bb.get)
+        player.player_emotion = final_emotion
+        player.save()
+
+
+
 def save_profile(backend, user, response, *args, **kwargs):
     if backend.name == 'google-oauth2':
         profile = user
@@ -51,7 +63,7 @@ def index(request):
     user = request.user
     if user.is_authenticated:
         player = models.Player.objects.get(user_id=request.user.pk)
-
+        get_emotion(player)
         if player.level >= 35:
             return redirect('oth:stay_tuned')
 
@@ -76,13 +88,8 @@ def answer(request, **kwargs):
         ans = request.POST.get('answer', '')
     player = models.Player.objects.get(user_id=request.user.pk)
 
-    oneday = datetime.datetime.now() - datetime.timedelta(days=1)
-    emotion_shivam = models.Emotion.objects.filter(user=player, timestamp__gt=oneday)
-    emotion_list = [emotion.emotion for emotion in emotion_shivam]
-    bb = dict(zip(emotion_list, [emotion_list.count(i) for i in emotion_list]))
-    final_emotion = max(bb, key=bb.get)
-    player.player_emotion = final_emotion
-    if not 'happy'.__eq__(final_emotion):
+    get_emotion(player)
+    if not 'happy'.__eq__(player.player_emotion):
         return redirect('oth:not_happy')
     # if (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).days < 1:
     #     seconds = 86400 - (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).total_seconds()
@@ -132,7 +139,7 @@ def answer(request, **kwargs):
         random_number = random_question[random.randrange(0, random_question.count())].id
         while models.Answer.objects.filter(user=player, question_id=random_number).exists():
             random_number = random_question[random.randrange(0, random_question.count())].id
-            print(random_number)
+            # print(random_number)
 
         player.random_number = random_number
         # if models.Answer.objects.filter
@@ -200,7 +207,7 @@ def not_happy(request, **kwargs):
 def gen(camera, player):
     while True:
         frame, emotion = camera.get_frame()
-        print(emotion, player)
+        # print(emotion, player)
         player_object = models.Player.objects.get(user_id=player)
         if emotion is not '' and emotion is not "neutral":
             emotion_save = models.Emotion.objects.create(user=player_object, emotion=emotion,

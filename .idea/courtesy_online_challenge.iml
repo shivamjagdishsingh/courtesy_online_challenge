@@ -14,7 +14,7 @@
   </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 3.5 (coc2) (2)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.5 (coc3.5_demo)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Music" />
   </component>
