@@ -8,6 +8,7 @@ from textblob import TextBlob
 from django.http.response import StreamingHttpResponse
 from oth.camera import VideoCamera
 from django.shortcuts import HttpResponse
+from django.contrib.humanize.templatetags.humanize import ordinal
 
 # Create your views here.
 
@@ -17,6 +18,11 @@ last = 100
 
 
 def get_emotion(player):
+    """
+    get_emotions function gets the MAX emotions count of user and saves automatically,
+    when user answers the question
+    """
+
     oneday = datetime.datetime.now() - datetime.timedelta(days=1)
     emotion_shivam = models.Emotion.objects.filter(user=player, timestamp__gt=oneday)
     if emotion_shivam:
@@ -25,19 +31,6 @@ def get_emotion(player):
         final_emotion = max(bb, key=bb.get)
         player.player_emotion = final_emotion
         player.save()
-
-
-
-def save_profile(backend, user, response, *args, **kwargs):
-    if backend.name == 'google-oauth2':
-        profile = user
-        try:
-            player = models.Player.objects.get(user=profile)
-        except:
-            player = models.Player(user=profile)
-            player.timestamp = datetime.datetime.now()
-            player.name = response.get('name')
-            player.save()
 
 
 def sentiment(text):
@@ -58,20 +51,119 @@ def sentiment(text):
     return label
 
 
+def save_profile(backend, user, response, *args, **kwargs):
+    if backend.name == 'google-oauth2':
+        profile = user
+        try:
+            player = models.Player.objects.get(user=profile)
+        except:
+            player = models.Player(user=profile)
+            player.timestamp = datetime.datetime.now()
+            player.name = response.get('name')
+            player.save()
+
+
+def save_answer(ans, question, player):
+    """
+    This function saves answer given by user.
+    """
+    s = sentiment(ans)
+    answer, created = models.Answer.objects.update_or_create(user=player, question=question,
+                                                             defaults={'answer': ans, 'sentiment': s})
+    player.video_viewed = 0
+    player.save()
+    # answer.image =
+    # answer.facial_expression =
+    if created:
+        player.score = player.score + 10
+        player.timestamp = datetime.datetime.now()
+        question.numuser = question.numuser + 1
+        question.save()
+
+
+def one_day_limitation(request, player):
+    """
+    one_day_limitation restricts user to answer any question if he has already answered in time range of 24 hours
+    """
+
+    if (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).days < 1:
+        seconds = 86400 - (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).total_seconds()
+        seconds = seconds % (24 * 3600)
+        hour = seconds // 3600
+        seconds %= 3600
+        minutes = seconds // 60
+        seconds %= 60
+
+    return render(request, 'oth/time_limit.html',
+                  {'hours': int(hour), 'minutes': int(minutes), 'seconds': int(seconds)})
+
+
+def user_question_assignment(player):
+    if player.score == 50:
+        if player.level == 7:
+            player.base_module_level = 7
+        elif player.level == 8:
+            player.base_module_level = 8
+        elif player.level == 9:
+            player.base_module_level = 9
+        elif player.level == 10:
+            player.base_module_level = 10
+        elif player.level == 11:
+            player.base_module_level = 11
+        player.save()
+
+    if player.base_module_level == 0:
+        random_question = models.Question.objects.filter(module__module__icontains="demo")
+    elif player.level < player.base_module_level + 5:
+        random_question = models.Question.objects.filter(module__module__icontains="2")
+    elif player.level < player.base_module_level + 10:
+        random_question = models.Question.objects.filter(module__module__icontains="3")
+    elif player.level < player.base_module_level + 15:
+        random_question = models.Question.objects.filter(module__module__icontains="4")
+    elif player.level < player.base_module_level + 20:
+        random_question = models.Question.objects.filter(module__module__icontains="5")
+    elif player.level < player.base_module_level + 25:
+        random_question = models.Question.objects.filter(module__module__icontains="6")
+    elif player.level < player.base_module_level + 30:
+        random_question = models.Question.objects.filter(module__module__icontains="7")
+    else:
+        player.random_number = 100
+
+        return redirect('oth:finish')
+
+    random_number = random_question[random.randrange(0, random_question.count())].id
+    while models.Answer.objects.filter(user=player, question_id=random_number).exists():
+        random_number = random_question[random.randrange(0, random_question.count())].id
+
+    player.random_number = random_number
+
+    global m_level
+    global f_user
+    if m_level < player.level:
+        m_level = player.level
+        f_user = player.name
+
+    player.save()
+
+
 @login_required
 def index(request):
     user = request.user
     if user.is_authenticated:
         player = models.Player.objects.get(user_id=request.user.pk)
         get_emotion(player)
-        if player.level >= 35:
+        if player.level >= player.base_module_level + 30:
             return redirect('oth:stay_tuned')
+        time_delta = (datetime.datetime.now(datetime.timezone.utc) - player.timestamp)
+
+        # one_day_limitation(request, player)
 
         if player.random_number == 1:
             random_number = models.Question.objects.last().id
             question = models.Question.objects.get(pk=random_number)
         else:
             question = models.Question.objects.get(pk=player.random_number)
+
         return render(request, 'oth/level.html', {'player': player, 'level': question})
     #     except:
     #         global last
@@ -83,95 +175,63 @@ def index(request):
 
 @login_required
 def answer(request, **kwargs):
-    ans = ""
-    if request.method == 'POST':
-        ans = request.POST.get('answer', '')
     player = models.Player.objects.get(user_id=request.user.pk)
 
-    get_emotion(player)
-    if not 'happy'.__eq__(player.player_emotion):
-        return redirect('oth:not_happy')
-    # if (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).days < 1:
-    #     seconds = 86400 - (datetime.datetime.now(datetime.timezone.utc) - player.timestamp).total_seconds()
-    #     seconds = seconds % (24 * 3600)
-    #     hour = seconds // 3600
-    #     seconds %= 3600
-    #     minutes = seconds // 60
-    #     seconds %= 60
-    #
-    #     return render(request, 'oth/time_limit.html',
-    #                   {'hours': int(hour), 'minutes': int(minutes), 'seconds': int(seconds)})
-    question = models.Question.objects.get(pk=kwargs['pk'])
-    s = sentiment(ans)
-    answer, created = models.Answer.objects.update_or_create(user=player, question=question,
-                                                             defaults={'answer': ans, 'sentiment': s})
-    # answer.image =
-    # answer.sentiment =
-    # answer.facial_expression =
-    if created:
-        player.level = player.level + 1
-        player.score = player.score + 10
-        player.timestamp = datetime.datetime.now()
-        question.numuser = question.numuser + 1
-        question.save()
+    """
+    The two line code below redirects User to not happy page, if player's emotion is not happy.
+    """
+    # if not 'happy'.__eq__(player.player_emotion):
+    #     return redirect('oth:not_happy')
 
-    try:
-        if player.level < 5:
-            random_question = models.Question.objects.filter(module__module__icontains="demo")
-        elif player.level < 10:
-            random_question = models.Question.objects.filter(module__module__icontains="2")
-        elif player.level < 15:
-            random_question = models.Question.objects.filter(module__module__icontains="3")
-        elif player.level < 20:
-            random_question = models.Question.objects.filter(module__module__icontains="4")
-        elif player.level < 25:
-            random_question = models.Question.objects.filter(module__module__icontains="5")
-        elif player.level < 30:
-            random_question = models.Question.objects.filter(module__module__icontains="6")
-        elif player.level < 35:
-            random_question = models.Question.objects.filter(module__module__icontains="7")
-        else:
-            player.random_number = 100
+    # one_day_limitation(request, player)
+
+    question = models.Question.objects.get(pk=kwargs['pk'])
+
+    get_emotion(player)
+
+    if request.method == 'POST':
+        if request.POST.get('option'):
+            """
+            If user answers an MCQ question, this condition is selected.
+            In this case, User's level increases by the option's level of the question he selects.
+            """
+
+            ans = request.POST.get('option')
+
+            if ans == "option1":
+                player.level += question.option1_level_score
+                ans = question.option1
+            elif ans == "option2":
+                player.level += question.option2_level_score
+                ans = question.option2
             player.save()
 
-            return redirect('oth:finish')
+            save_answer(ans, question, player)
 
-        random_number = random_question[random.randrange(0, random_question.count())].id
-        while models.Answer.objects.filter(user=player, question_id=random_number).exists():
-            random_number = random_question[random.randrange(0, random_question.count())].id
-            # print(random_number)
 
-        player.random_number = random_number
-        # if models.Answer.objects.filter
-        # print level.numuser
-        # print player.max_level
-        global m_level
-        global f_user
-        # print f_user
-        # print m_level
-        if m_level < player.level:
-            m_level = player.level
-            f_user = player.name
+        elif request.POST.get('answer'):
+            """
+            If user writes an answer to a Non-MCQ question, this condition is selected.
+            In this case, user's level increases by 1.
+            """
 
-        player.save()
+            ans = request.POST.get('answer')
+            player.level += 1
+            player.save()
+
+            save_answer(ans, question, player)
+
+    try:
+
+        user_question_assignment(player)
         return redirect('oth:index')
 
     except ValueError:
         return redirect('oth:finish')
 
-    # index(request)
-    # try:
-    #     level = models..objects.get(leve=player.level)
-    #     # return render(request, 'finish.html')
-    # except:
-    #     return render(request, 'oth/finish.html')
     # global last
     # if player.level > last:
     #     return render(request, 'oth/win.html', {'player': player})
-    # return render(request, 'oth/stay_tuned.html', {'player': player})
-    # elif ans == "":
-    #     pass
-    #
 
 
 @login_required
@@ -196,6 +256,21 @@ def finish(request):
 
 def stay_tuned(request):
     return render(request, 'oth/stay_tuned.html')
+
+
+def view_video(request, **kwargs):
+    player = models.Player.objects.get(user_id=request.user.pk)
+    video_view_count = player.video_viewed
+    counts_remaining = 3 - player.video_viewed
+    question = models.Question.objects.get(pk=kwargs['pk'])
+
+    if video_view_count < 3:
+        player.video_viewed += 1
+        player.save()
+        return render(request, 'oth/video.html',
+                      {'question': question, 'player': player, 'counts_remaining': counts_remaining})
+
+    return render(request, 'oth/video.html', {'player': player})
 
 
 def not_happy(request, **kwargs):

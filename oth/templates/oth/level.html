@@ -86,11 +86,12 @@
 
 
         <!-- Jumbotron -->
+        {% if level.image %}
+            <div class="jumbotron border-shadow" style="margin-top:15px;background-color:rgba(255, 255, 255, 0.4);">
+                <img style="" src="{{ level.image.url }}" width="400px"/>
+            </div>
+        {% endif %}
 
-        <div class="jumbotron border-shadow" style="margin-top:15px;background-color:rgba(255, 255, 255, 0.4);">
-            <img style="" src="{{ level.image.url }}" width="400px"/>
-
-        </div>
         <div class="col-lg-8 rules border-shadow" style="padding:25px">
 
             </br>
@@ -106,6 +107,7 @@
                     <div class="col-lg-6 table-bordered" style="height: 200px"><strong>Option 1:</strong>
                         {{ level.option1 }}
                     </div>
+
                 {% endif %}
                 {% if level.option2 %}
                     <div class="col-lg-6 table-bordered" style="height: 200px"><strong>Option 2:</strong>
@@ -118,11 +120,25 @@
             <br>
             <br>
 
-            <div class="col-lg-8"><strong>Enter your answer:</strong></div>
+            <div class="col-lg-12" style="height: 80px"><h3><strong>Enter your answer:</strong></h3>
+                <br>
+            </div>
             <form id="ans" method="post" action="{% url 'oth:answer' level.id %}">
                 {% csrf_token %}
-                <br> <input type="text" name="answer" class="form-control" value="" size="500" autofocus/>
-                <br/>
+                <br>
+                <div class="col-lg-6 table-bordered" style="height: 80px">
+                    <input type="radio" id="option1" name="option" value="option1">
+                    <label for="option1"><h4><strong>OPTION 1</strong></h4></label><br>
+                </div>
+                <div class="col-lg-6 table-bordered" style="height: 80px">
+                    <input type="radio" id="option2" name="option" value="option2">
+                    <label for="option2"><h4><strong>OPTION 2</strong></h4></label><br>
+                </div>
+                {% if not level.option1 %}
+                    <br> <input type="text" name="answer" class="form-control" style="height: 50px" value="" size="500"
+                                autofocus/>
+                    <br/>
+                {% endif %}
 
                 <input type="submit" class="btn btn-primary btn-lg btn-block" value="Submit"/>
             </form>
@@ -132,7 +148,17 @@
             <div class="sidebox border-shadow" style="padding:15px">
                 <p style="text-align:center;font-size:35px;color:green">{{ level.module }}</p>
             </div>
+            <br>
+
         </div>
+        {% if level.videofile %}
+            <div class="col-lg-4">
+                <div class="sidebox border-shadow" style="padding:15px">
+                    <a style="text-align:center;font-size:35px;color:green" href="{% url 'oth:view_video' level.id %}">View
+                        Video</a>
+                </div>
+            </div>
+        {% endif %}
 
     </div>
 {% endblock %}
