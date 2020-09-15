@@ -126,14 +126,16 @@
             <form id="ans" method="post" action="{% url 'oth:answer' level.id %}">
                 {% csrf_token %}
                 <br>
-                <div class="col-lg-6 table-bordered" style="height: 80px">
-                    <input type="radio" id="option1" name="option" value="option1">
-                    <label for="option1"><h4><strong>OPTION 1</strong></h4></label><br>
-                </div>
-                <div class="col-lg-6 table-bordered" style="height: 80px">
-                    <input type="radio" id="option2" name="option" value="option2">
-                    <label for="option2"><h4><strong>OPTION 2</strong></h4></label><br>
-                </div>
+                {% if level.option1 %}
+                    <div class="col-lg-6 table-bordered" style="height: 80px">
+                        <input type="radio" id="option1" name="option" value="option1">
+                        <label for="option1"><h4><strong>OPTION 1</strong></h4></label><br>
+                    </div>
+                    <div class="col-lg-6 table-bordered" style="height: 80px">
+                        <input type="radio" id="option2" name="option" value="option2">
+                        <label for="option2"><h4><strong>OPTION 2</strong></h4></label><br>
+                    </div>
+                {% endif %}
                 {% if not level.option1 %}
                     <br> <input type="text" name="answer" class="form-control" style="height: 50px" value="" size="500"
                                 autofocus/>

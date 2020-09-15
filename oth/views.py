@@ -30,7 +30,7 @@ def get_emotion(player):
         bb = dict(zip(emotion_list, [emotion_list.count(i) for i in emotion_list]))
         final_emotion = max(bb, key=bb.get)
         player.player_emotion = final_emotion
-        player.save()
+        # player.save()
 
 
 def sentiment(text):
@@ -71,14 +71,15 @@ def save_answer(ans, question, player):
     answer, created = models.Answer.objects.update_or_create(user=player, question=question,
                                                              defaults={'answer': ans, 'sentiment': s})
     player.video_viewed = 0
-    player.save()
+    # player.save()
     # answer.image =
     # answer.facial_expression =
     if created:
         player.score = player.score + 10
         player.timestamp = datetime.datetime.now()
         question.numuser = question.numuser + 1
-        question.save()
+        # player.save()
+        # question.save()
 
 
 def one_day_limitation(request, player):
@@ -101,35 +102,45 @@ def one_day_limitation(request, player):
 def user_question_assignment(player):
     if player.score == 50:
         if player.level == 7:
-            player.base_module_level = 7
+            player.base_module = models.Module.objects.get(module_number=2)
         elif player.level == 8:
-            player.base_module_level = 8
+            player.base_module = models.Module.objects.get(module_number=3)
         elif player.level == 9:
-            player.base_module_level = 9
+            player.base_module = models.Module.objects.get(module_number=4)
         elif player.level == 10:
-            player.base_module_level = 10
+            player.base_module = models.Module.objects.get(module_number=5)
         elif player.level == 11:
-            player.base_module_level = 11
-        player.save()
+            player.base_module = models.Module.objects.get(module_number=6)
+        # player.save()
 
-    if player.base_module_level == 0:
-        random_question = models.Question.objects.filter(module__module__icontains="demo")
-    elif player.level < player.base_module_level + 5:
-        random_question = models.Question.objects.filter(module__module__icontains="2")
-    elif player.level < player.base_module_level + 10:
-        random_question = models.Question.objects.filter(module__module__icontains="3")
-    elif player.level < player.base_module_level + 15:
-        random_question = models.Question.objects.filter(module__module__icontains="4")
-    elif player.level < player.base_module_level + 20:
-        random_question = models.Question.objects.filter(module__module__icontains="5")
-    elif player.level < player.base_module_level + 25:
-        random_question = models.Question.objects.filter(module__module__icontains="6")
-    elif player.level < player.base_module_level + 30:
-        random_question = models.Question.objects.filter(module__module__icontains="7")
-    else:
-        player.random_number = 100
+    if player.score < 50:
+        random_question = models.Question.objects.filter(module__module_number="0")
+    elif player.score >= 50:
+        questions_answered = (player.score - 50) / 10
+        if not questions_answered:
+            modules_solved = 0
+        else:
+            modules_solved = int(questions_answered / 5)
+        final_module = player.base_module.module_number + modules_solved
 
-        return redirect('oth:finish')
+        if final_module == 1:
+            random_question = models.Question.objects.filter(module__module_number="1")
+        elif final_module == 2:
+            random_question = models.Question.objects.filter(module__module_number="2")
+        elif final_module == 3:
+            random_question = models.Question.objects.filter(module__module_number="3")
+        elif final_module == 4:
+            random_question = models.Question.objects.filter(module__module_number="4")
+        elif final_module == 5:
+            random_question = models.Question.objects.filter(module__module_number="5")
+        elif final_module == 6:
+            random_question = models.Question.objects.filter(module__module_number="6")
+        elif final_module == 7:
+            random_question = models.Question.objects.filter(module__module_number="7")
+        else:
+            player.random_number = 100
+
+            return redirect('oth:finish')
 
     random_number = random_question[random.randrange(0, random_question.count())].id
     while models.Answer.objects.filter(user=player, question_id=random_number).exists():
@@ -143,7 +154,7 @@ def user_question_assignment(player):
         m_level = player.level
         f_user = player.name
 
-    player.save()
+    # player.save()
 
 
 @login_required
@@ -152,8 +163,8 @@ def index(request):
     if user.is_authenticated:
         player = models.Player.objects.get(user_id=request.user.pk)
         get_emotion(player)
-        if player.level >= player.base_module_level + 30:
-            return redirect('oth:stay_tuned')
+        # if player.level >= player.base_module_level + 30:
+        #     return redirect('oth:stay_tuned')
         time_delta = (datetime.datetime.now(datetime.timezone.utc) - player.timestamp)
 
         # one_day_limitation(request, player)
@@ -204,7 +215,7 @@ def answer(request, **kwargs):
             elif ans == "option2":
                 player.level += question.option2_level_score
                 ans = question.option2
-            player.save()
+            # player.save()
 
             save_answer(ans, question, player)
 
@@ -217,13 +228,15 @@ def answer(request, **kwargs):
 
             ans = request.POST.get('answer')
             player.level += 1
-            player.save()
+            # player.save()
 
             save_answer(ans, question, player)
 
     try:
 
         user_question_assignment(player)
+        player.save()
+        question.save()
         return redirect('oth:index')
 
     except ValueError:

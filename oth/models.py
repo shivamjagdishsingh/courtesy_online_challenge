@@ -6,19 +6,21 @@ from django.contrib.auth.models import User
 import datetime
 import os
 
+
 # User = get_user_model()
 
 
 def get_upload_path(instance, filename):
     return os.path.join(
-        "%s" % instance.module.module, filename)
+        "%s" % instance.module.module_number, filename)
 
 
 class Module(models.Model):
-    module = models.CharField(max_length=50)
+    module_number = models.IntegerField()
+    module_name = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.module
+        return self.module_name
 
 
 class Player(models.Model):
@@ -30,7 +32,7 @@ class Player(models.Model):
     timestamp = models.DateTimeField()
     player_emotion = models.CharField(max_length=50, default='neutral', blank=True, null=True)
     video_viewed = models.IntegerField(default=0)
-    base_module_level = models.IntegerField(default=0)
+    base_module = models.ForeignKey(Module, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.name
