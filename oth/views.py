@@ -122,25 +122,24 @@ def user_question_assignment(player):
         else:
             modules_solved = int(questions_answered / 5)
         final_module = player.base_module.module_number + modules_solved
-
-        if final_module == 1:
-            random_question = models.Question.objects.filter(module__module_number="1")
-        elif final_module == 2:
-            random_question = models.Question.objects.filter(module__module_number="2")
-        elif final_module == 3:
-            random_question = models.Question.objects.filter(module__module_number="3")
-        elif final_module == 4:
-            random_question = models.Question.objects.filter(module__module_number="4")
-        elif final_module == 5:
-            random_question = models.Question.objects.filter(module__module_number="5")
-        elif final_module == 6:
-            random_question = models.Question.objects.filter(module__module_number="6")
-        elif final_module == 7:
-            random_question = models.Question.objects.filter(module__module_number="7")
-        else:
+        if final_module == 7 and questions_answered % 5 == 0:
             player.random_number = 100
-
+            player.save()
             return redirect('oth:finish')
+        else:
+            random_question = models.Question.objects.filter(module__module_number=final_module)
+        # elif final_module == 2:
+        #     random_question = models.Question.objects.filter(module__module_number="2")
+        # elif final_module == 3:
+        #     random_question = models.Question.objects.filter(module__module_number="3")
+        # elif final_module == 4:
+        #     random_question = models.Question.objects.filter(module__module_number="4")
+        # elif final_module == 5:
+        #     random_question = models.Question.objects.filter(module__module_number="5")
+        # elif final_module == 6:
+        #     random_question = models.Question.objects.filter(module__module_number="6")
+        # elif final_module == 7:
+        #     random_question = models.Question.objects.filter(module__module_number="7")
 
     random_number = random_question[random.randrange(0, random_question.count())].id
     while models.Answer.objects.filter(user=player, question_id=random_number).exists():
@@ -163,8 +162,8 @@ def index(request):
     if user.is_authenticated:
         player = models.Player.objects.get(user_id=request.user.pk)
         get_emotion(player)
-        # if player.level >= player.base_module_level + 30:
-        #     return redirect('oth:stay_tuned')
+        if player.random_number == 100:
+            return redirect('oth:finish')
         time_delta = (datetime.datetime.now(datetime.timezone.utc) - player.timestamp)
 
         # one_day_limitation(request, player)

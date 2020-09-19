@@ -156,9 +156,20 @@
         {% if level.videofile %}
             <div class="col-lg-4">
                 <div class="sidebox border-shadow" style="padding:15px">
-                    <a style="text-align:center;font-size:35px;color:green" href="{% url 'oth:view_video' level.id %}">View
+                    <a style="text-align:center;font-size:35px;color:green" href="{% url 'oth:attachment' level.id %}">View
                         Video</a>
                 </div>
+                <br>
+            </div>
+
+        {% endif %}
+        {% if level.audiofile %}
+            <div class="col-lg-4">
+                <div class="sidebox border-shadow" style="padding:15px">
+                    <a style="text-align:center;font-size:35px;color:green" href="{% url 'oth:attachment' level.id %}">Listen
+                        Audio</a>
+                </div>
+                <br>
             </div>
         {% endif %}
 

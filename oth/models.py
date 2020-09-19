@@ -42,6 +42,7 @@ class Question(models.Model):
     module = models.ForeignKey(Module, on_delete=models.CASCADE)
     image = models.ImageField(upload_to=get_upload_path, blank=True, null=True, default='images/level1.jpg')
     videofile = models.FileField(upload_to=get_upload_path, blank=True, null=True)
+    audiofile = models.FileField(upload_to=get_upload_path, blank=True, null=True)
     question = models.TextField(null=True, blank=True)
     option1 = models.TextField(null=True, blank=True)
     option2 = models.TextField(null=True, blank=True)
